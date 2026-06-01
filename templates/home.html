@@ -1,0 +1,173 @@
+ n{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CELESEBYTE.com</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" media="screen">
+</head>
+<body>
+
+<main class="main-content w-100" style="margin-left:0;">
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary">
+        <h3>CELESEBYTE Dashboard </h3>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary">Live Data Feed</span>
+            <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">
+                <i class="fa fa-broom me-1"></i> Clear Filters
+            </a>
+            <details class="profile-menu position-relative m-0">
+                <summary class="btn btn-outline-light btn-sm rounded-pill d-flex align-items-center gap-2" style="list-style:none; cursor:pointer;" aria-label="User menu">
+                    <i class="fa fa-user-circle"></i>
+                </summary>
+                <div class="position-absolute end-0 mt-2 bg-dark border border-secondary rounded shadow p-3" style="min-width:220px; z-index:10;">
+                    <div class="small text-white fw-bold">{{ logged_in_user|default:"Guest" }}</div>
+                    <div class="small text-muted">Role: {{ user_role|default:"Viewer" }}</div>
+                    <hr class="my-2 border-secondary">
+                    <a href="/login" class="btn btn-danger btn-sm w-100">
+                        <i class="fa fa-sign-out-alt me-1"></i> Logout
+                    </a>
+                </div>
+            </details>
+        </div>
+    </header>
+
+    {% if can_edit %}
+    <form method="POST" action="{% url 'home' %}" enctype="multipart/form-data" class="card bg-dark p-3 border-secondary mb-4">
+        {% csrf_token %}
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small text-uppercase fw-bold text-muted mb-1">Upload Excel</label>
+                <input type="file" name="excel_file" accept=".xlsx,.xls" class="form-control form-control-sm bg-white text-dark border-secondary" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-success btn-sm w-100"><i class="fa fa-file-excel me-1"></i> Upload & Save</button>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex gap-2 align-items-end h-100">
+                    <a href="{% static 'sample_customers.csv' %}" class="btn btn-outline-light btn-sm flex-fill" download>
+                        <i class="fa fa-file-csv me-1"></i> Sample CSV
+                    </a>
+                    <a href="{% static 'sample_customers.xlsx' %}" class="btn btn-outline-light btn-sm flex-fill" download>
+                        <i class="fa fa-file-excel me-1"></i> Sample Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% if import_message %}
+        <div class="mt-3 small {% if 'failed' in import_message|lower or 'failed' in import_message|lower %}text-danger{% else %}text-success{% endif %}">
+            {{ import_message }}
+        </div>
+        {% endif %}
+        {% if delete_message %}
+        <div class="mt-3 small text-warning">
+            {{ delete_message }}
+        </div>
+        {% endif %}
+    </form>
+    {% else %}
+    <div class="card bg-secondary bg-opacity-25 border-secondary p-3 mb-4 text-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1">Read-only access</h5>
+                <div class="small text-muted">You can view records, but upload and delete actions are disabled.</div>
+            </div>
+            <span class="badge bg-warning text-dark">View Only</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="GET" action="{% url 'home' %}" class="card bg-dark p-3 border-secondary mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <input type="text" name="filter_name" class="form-control form-control-sm bg-white text-dark border-secondary" placeholder="Filter by Name" value="{{ request.GET.filter_name|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="filter_address" class="form-control form-control-sm bg-white text-dark border-secondary" placeholder="Filter by Address" value="{{ request.GET.filter_address|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="filter_mobile" class="form-control form-control-sm bg-white text-dark border-secondary" placeholder="Filter by Mobile" value="{{ request.GET.filter_mobile|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fa fa-filter me-1"></i> Apply Filters</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="table-responsive shadow rounded">
+        <table class="table table-dark table-hover table-bordered align-middle m-0">
+            <thead>
+                <tr>
+                    <th>Mobile</th>
+                    <th>Customer Name</th>
+                    <th>Father Name</th>
+                    <th>Alt Number</th>
+                    <th>DOB</th>
+                    <th>Local Address</th>
+                    <th>Permanent Address</th>
+                    <th>Govt ID / PAN</th>
+                    <th>Email</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in all_data %}
+                <tr>
+                    <td class="text-info fw-bold">{{ data.mobile }}</td>
+                    <td>{{ data.customer_name }}</td>
+                    <td>{{ data.father_name }}</td>
+                    <td>{{ data.alt_number|default:"-" }}</td>
+                    <td>{{ data.dob }}</td>
+                    <td>{{ data.local_address }}</td>
+                    <td>{{ data.permanent_address }}</td>
+                    <td><code class="text-warning">{{ data.aadhar_pan }}</code></td>
+                    <td><a href="mailto:{{ data.email }}" class="text-decoration-none text-accent">{{ data.email }}</a></td>
+                    <td>
+                        {% if can_edit %}
+                        <form method="POST" action="{% url 'home' %}" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="delete_id" value="{{ data.id }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                        {% else %}
+                        <span class="badge bg-secondary">View only</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center py-4 text-muted">
+                        <i class="fa fa-folder-open d-block fs-3 mb-2"></i> No matching records found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        {% if page_obj.has_previous %}
+            <a class="btn btn-outline-light btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+        {% else %}
+            <button class="btn btn-outline-secondary btn-sm" disabled>Previous</button>
+        {% endif %}
+
+        <span class="text-muted small">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a class="btn btn-outline-light btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+        {% else %}
+            <button class="btn btn-outline-secondary btn-sm" disabled>Next</button>
+        {% endif %}
+    </div>
+
+    <footer class="footer mt-4 rounded">
+        &copy; 2026 CELESEBYTE &middot; Powered by Django
+    </footer>
+</main>
+
+</body>
+</html>
